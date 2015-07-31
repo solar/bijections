@@ -1,16 +1,18 @@
-version := "0.0.1-SNAPSHOT"
+version := "0.0.2-SNAPSHOT"
 
 organization := "org.sazabi"
 
-crossScalaVersions := Seq("2.11.6", "2.10.5")
+crossScalaVersions := Seq("2.11.7", "2.10.5")
 
 scalaVersion := crossScalaVersions.value.head
 
-libraryDependencies += "com.twitter" %% "bijection-core" % "0.7.2"
+libraryDependencies += "com.twitter" %% "bijection-core" % "0.8.1"
 
-libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.12.2" % "test")
+libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.1.11" % "test"
+
+testFrameworks += new TestFramework("scalaprops.ScalapropsFramework")
+
+parallelExecution in Global := false
 
 publishMavenStyle := true
 
@@ -27,7 +29,7 @@ publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
 
 pomExtra := (
-  <url>https://github.com/solar/util-bijection</url>
+  <url>https://github.com/solar/bijections</url>
   <licenses>
     <license>
       <name>Apache 2</name>

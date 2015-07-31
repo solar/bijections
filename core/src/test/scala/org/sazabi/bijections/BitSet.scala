@@ -3,17 +3,26 @@ package org.sazabi.bijections
 import scala.collection.immutable.BitSet
 
 import com.twitter.bijection._
-import org.scalatest._
+import scalaprops._, Property.forAll
+import scalaz.std.string._
 
-class BitSetSpec extends FlatSpec with Matchers with BitSetBijections {
-  val bitset = BitSet(2, 3)
-  val mask = Array(12L)
+object BitSetTest extends Scalaprops with BitSetBijections {
+  implicit val maskGen = for {
+    i <- Gen.choose(1, 3)
+    n <- Gen.sequenceNList(i, Gen[Long])
+  } yield n.toArray
 
-  "Bijection[Array[Long], BitSet]" should "convert Array[Long] to BitSet" in {
-    Bijection[Array[Long], BitSet](mask) shouldBe bitset
-  }
+  val bij = implicitly[Bijection[Array[Long], BitSet]]
 
-  it should "invert BitSet to Array[Long]" in {
-    Bijection.invert[Array[Long], BitSet](bitset) shouldBe mask
+  val bijectionBitSet = {
+    val p1 = forAll { (mask: Array[Long]) =>
+      BitSet.fromBitMask(mask) == bij(mask)
+    }.toProperties("1. Array[Byte] -> BitSet")
+
+    val p2 = forAll { (mask: Array[Long]) =>
+      bij.invert(BitSet.fromBitMask(mask)).toSeq == mask.toSeq
+    }.toProperties("2. BitSet -> Array[Byte]")
+
+    Properties.list(p1, p2)
   }
 }

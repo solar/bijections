@@ -8,7 +8,7 @@ import scalaz.{ Failure => _, Success => _, _ }
 import syntax.validation._
 
 trait Injections {
-  implicit def JsonToString[A]: Injection[Json, String] =
+  implicit val JsonToString: Injection[Json, String] =
     Injection.build[Json, String](json => json.nospaces)(str =>
         Parse.parse(str).fold(e => Failure(InversionFailure(e, null)),
           v => Success(v)))

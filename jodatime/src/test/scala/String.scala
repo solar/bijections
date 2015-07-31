@@ -2,49 +2,57 @@ package org.sazabi.bijections.jodatime
 
 import scala.util.Success
 
-import com.twitter.bijection._
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import com.github.nscala_time.time.Imports._
+import com.twitter.bijection.Injection
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.LocalDate
-import org.scalatest._
+import scalaprops._, Property.forAll
+import scalaz._, std.string._, syntax.tag._
 
-class StringSpec extends FlatSpec with Matchers with StringInjections {
+object StringTest extends Scalaprops with StringInjections {
   implicit val dateTimeFormat = Tags.ForDateTime(
-    DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss").withZone(DateTimeZone.UTC))
+    DateTimeFormat.forPattern("yyyy/MM/dd HH:mm:ss.SSS").withZone(DateTimeZone.UTC))
 
   implicit val localDateFormat = Tags.ForLocalDate(
     DateTimeFormat.forPattern("yyyy/MM/dd").withZone(DateTimeZone.UTC))
 
-  val dateTime = new DateTime("2013-10-18T12:34Z", DateTimeZone.UTC)
-  val localDate = new LocalDate("2013-10-18")
+  val injectionDateTime2String = {
+    val inj = dateTime2String
 
-  val dateTimeString = "2013/10/18 12:34:00"
-  val localDateString = "2013/10/18"
+    val injection = forAll { (v: DateTime) =>
+      inj(v) == dateTimeFormat.unwrap.print(v)
+    }(Gens.dateTime).toProperties("o.j.t.DateTime -> String")
 
-  val invalidString = "2013-10-08T12:34:00.000Z"
+    val inversion = forAll { (v: DateTime) =>
+      val str = dateTimeFormat.unwrap.print(v)
+      inj.invert(str).filter(_.isEqual(v)).toOption.isDefined
+    }(Gens.dateTime).toProperties("o.j.t.DateTime -> String -> o.j.t.DateTime")
 
-  "Injection[DateTime, String]" should "convert DateTime to String" in {
-    Injection[DateTime, String](dateTime) shouldBe dateTimeString
+    val failedInversion = forAll { (v: String) =>
+      inj.invert(v).toOption.isEmpty
+    }(Gen.alphaString).toProperties("fail: random String -> o.j.t.DateTime")
+
+    Properties.fromProps("Injection[o.j.t.DateTime, String]",
+      injection, inversion, failedInversion)
   }
 
-  it should "invert String to DateTime" in {
-    Injection.invert[DateTime, String](dateTimeString) shouldBe
-      Success(dateTime)
+  val injectionLocalDate2String = {
+    val inj = localDate2String
 
-    Injection.invert[DateTime, String](invalidString) shouldBe 'failure
-  }
+    val injection = forAll { (v: LocalDate) =>
+      inj(v) == localDateFormat.unwrap.print(v)
+    }(Gens.localDate).toProperties("o.j.t.LocalDate -> String")
 
-  "Injection[LocalDate, String]" should "convert LocalDate to String" in {
-    Injection[LocalDate, String](localDate) shouldBe localDateString
-  }
+    val inversion = forAll { (v: LocalDate) =>
+      val str = localDateFormat.unwrap.print(v)
+      inj.invert(str).filter(_ == v).toOption.isDefined
+    }(Gens.localDate).toProperties("o.j.t.LocalDate -> String -> o.j.t.LocalDate")
 
-  it should "invert String to LocalDate" in {
-    Injection.invert[LocalDate, String](localDateString) shouldBe
-      Success(localDate)
+    val failedInversion = forAll { (v: String) =>
+      inj.invert(v).toOption.isEmpty
+    }(Gen.alphaString).toProperties("fail: random String -> o.j.t.LocalDate")
 
-    Injection.invert[LocalDate, String](invalidString) shouldBe 'failure
+    Properties.fromProps("Injection[o.j.t.LocalDate, String]",
+      injection, inversion, failedInversion)
   }
 }

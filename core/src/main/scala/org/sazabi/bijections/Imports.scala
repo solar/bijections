@@ -1,8 +1,6 @@
 package org.sazabi.bijections
 
-trait Imports
-  extends Base58Bijections
-  with BitSetBijections
+trait Imports extends BitSetBijections
   with ScalaMathInjections
 
 object imports extends Imports

@@ -2,38 +2,41 @@ package org.sazabi.bijections.jodatime
 
 import java.sql.{ Date, Timestamp }
 
+import com.github.nscala_time.time.Imports._
 import com.twitter.bijection._
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.format.{DateTimeFormat => DTFormat}
-import org.joda.time.LocalDate
-import org.scalatest._
+import scalaprops._, Property.forAll
+import scalaz._, std.string._, syntax.tag._
 
-class SqlSpec extends FlatSpec with Matchers with SqlBijections {
+object SqlTest extends Scalaprops with SqlBijections {
   implicit val timeZone = Tags.ForLocalDate(DateTimeZone.UTC)
-  val now = 1382054400000L
 
-  val dateTime = new DateTime(now)
-  val localDate = new LocalDate(now)
+  val bijectionDateTime2Timestamp = {
+    val bij = dateTime2Timestamp
 
-  val timestamp = new Timestamp(now)
-  val date = new Date(now)
+    val bijection = forAll { (v: DateTime) =>
+      bij(v) == new Timestamp(v.getMillis)
+    }(Gens.dateTime).toProperties("o.j.t.DateTime -> j.s.Timestamp")
 
-  "Bijection[DateTime, Timestamp]" should "convert DateTime to Timestamp" in {
-    Bijection[DateTime, Timestamp](dateTime) shouldBe timestamp
+    val inversion = forAll { (v: Timestamp) =>
+      bij.invert(v) == new DateTime(v.getTime)
+    }(Gens.sqlTimestamp).toProperties("j.s.Timestamp -> o.j.t.DateTime")
+
+    Properties.fromProps("Bijection[o.j.t.DateTime, j.s.Timestamp]",
+      bijection, inversion)
   }
 
-  it should "invert Timestamp to DateTime" in {
-    Bijection.invert[DateTime, Timestamp](timestamp) shouldBe dateTime
-  }
+  val bijectionLocalDate2Date = {
+    val bij = localDate2Date
 
-  "Bijection[LocalDate, Date]" should "convert LocalDate to Date" in {
-    Bijection[LocalDate, Date](localDate) shouldBe date
-  }
+    val bijection = forAll { (v: LocalDate) =>
+      bij(v) == new Date(v.toDateTimeAtStartOfDay(timeZone.unwrap).getMillis)
+    }(Gens.localDate).toProperties("o.j.t.LocalDate -> j.s.Date")
 
-  it should "invert Date to LocalDate" in {
-    Bijection.invert[LocalDate, Date](date) shouldBe localDate
+    val inversion = forAll { (v: Date) =>
+      bij.invert(v) == new DateTime(v.getTime, timeZone.unwrap).toLocalDate
+    }(Gens.sqlDate).toProperties("j.s.Date -> o.j.t.LocalDate")
+
+    Properties.fromProps("Bijection[o.j.t.LocalDate, j.s.Date]",
+      bijection, inversion)
   }
 }

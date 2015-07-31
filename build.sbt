@@ -1,10 +1,7 @@
 import AddSettings._
 
-val f = file("../settings.sbt")
-
-def proj(name: String) =
-  Project(s"bijections-$name", file(name)).settingSets(
-    autoPlugins, buildScalaFiles, userSettings, sbtFiles(f))
+def proj(name: String) = Project(s"bijections-$name", file(name)).settingSets(
+  autoPlugins, buildScalaFiles, userSettings, sbtFiles(file("../settings.sbt")))
 
 lazy val root = project.in(file(".")).settingSets(
   allPlugins, buildScalaFiles, userSettings, defaultSbtFiles
@@ -17,16 +14,21 @@ lazy val core = proj("core").settings(
 )
 
 lazy val argonaut = proj("argonaut").settings (
-  libraryDependencies += "io.argonaut" %% "argonaut" % "6.1-M6"
+  libraryDependencies += "io.argonaut" %% "argonaut" % "6.1"
 )
 
 lazy val joda = proj("jodatime").settings (
   libraryDependencies ++= Seq(
-    "joda-time" % "joda-time" % "2.7",
-    "org.joda" % "joda-convert" % "1.7" % "provided",
-    "org.scalaz" %% "scalaz-core" % "7.1.1")
+    "com.github.nscala-time" %% "nscala-time" % "2.0.0",
+    "org.scalaz" %% "scalaz-core" % "7.1.3",
+    "com.chuusai" %% "shapeless" % "2.2.5"),
+  libraryDependencies ++= (
+    if (scalaVersion.value.startsWith("2.10"))
+      Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full))
+    else Seq()
+  )
 )
 
 lazy val scalaz = proj("scalaz").settings(
-  libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.1"
+  libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.3"
 )

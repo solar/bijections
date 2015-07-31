@@ -8,46 +8,62 @@ import _root_.argonaut.Json._
 import _root_.argonaut.JsonIdentity._
 import _root_.scalaz.{ Success => SS, Failure => SF, _ }
 import com.twitter.bijection._
-import com.twitter.bijection.Conversion.asMethod
-import org.scalatest._
+import scalaprops._, Property.forAll
 import syntax.validation._
+import std.string._
 
-class InjectionsSpec extends FlatSpec with Matchers with Injections {
+object InjectionsTest extends Scalaprops with Injections {
   val json = Json("key1" -> jNumberOrNull(20), "key2" -> jString("hoge"))
   val valid = json.nospaces
   val invalid = """{"invalid json"}"""
 
-  case class Hoge(str: String)
+  val genJNull: Gen[Json] = Gen.value(jNull)
 
-  implicit val inj: Injection[Hoge, String] =
-    Injection.buildCatchInvert[Hoge, String](_.str)(
-      s => if (s == "hoge") Hoge(s) else throw new RuntimeException)
+  val genJString: Gen[Json] = Gen.asciiString.map(jString)
 
-  "Injection[Json, String]" should "convert Json to String" in {
-    Injection[Json, String](json) shouldBe valid
+  val genJNumber: Gen[Json] = Gen.oneOf(
+    Gen[Double].map(jNumberOrString),
+    Gen[Long].map(jNumber))
+
+  implicit val genJson: Gen[Json] = Gen.frequency(
+    5 -> genJNull,
+    30 -> genJNumber,
+    30 -> genJString
+  )
+
+  private[this] case class Hoge(str: String)
+
+  private[this] object Hoge {
+    implicit val codecJson = CodecJson.derive[Hoge]
   }
 
-  it should "invert valid string to Success(Json)" in {
-    Injection.invert[Json, String](valid) shouldBe Success(json)
+  val json2String = {
+    val inj = JsonToString
+
+    val nospaces = forAll { (v: Json) =>
+      inj(v) == v.nospaces
+    }.toProperties("Json -> String")
+
+    val invertible = forAll { (v: Json) =>
+      inj.invert(v.nospaces) == Success(v)
+    }.toProperties("String -> Json")
+
+    val random = forAll { (v: String) =>
+      inj.invert(v).toOption == Parse.parse(v).toOption
+    }(Gen.asciiString).toProperties("Random string -> Json")
+
+    Properties.fromProps("Injection[Json, String]",
+      nospaces, invertible, random)
   }
 
-  it should "invert invalid string to Failure" in {
-    Injection.invert[Json, String](invalid) shouldBe 'failure
-  }
+  val codecJson2Injection = {
+    val inj = CodecJsonToInjection[Hoge]
 
-  "CodecJsonToInjection[A]" should "create Injection[A, Json] from CodecJson[A]" in {
-    implicit val cj: CodecJson[Hoge] = CodecJson(v => jString(v.str), { c =>
-      c.focus.string match {
-        case Some(s) if s == "hoge" => DecodeResult.ok(Hoge(s))
-        case _ => DecodeResult.fail("Invalid json for Hoge", c.history)
-      }
-    })
+    val encode = forAll { (v: String) =>
+      true
+    }(Gen.asciiString).toProperties("encode")
 
-    val inj: Injection[Hoge, Json] = CodecJsonToInjection[Hoge]
-
-    inj(Hoge("hoge")).string shouldBe Some("hoge")
-
-    inj.invert(jString("hoge")) shouldBe Success(Hoge("hoge"))
-    inj.invert(jString("fuga")) shouldBe 'failure
+    Properties.fromProps("CodecJsonToInjection[A]",
+      encode)
   }
 }
