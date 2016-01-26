@@ -10,6 +10,9 @@ libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.1.16" % "tes
 
 testFrameworks += new TestFramework("scalaprops.ScalapropsFramework")
 
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
+releaseCrossBuild := true
+
 parallelExecution in Global := false
 
 publishMavenStyle := true
