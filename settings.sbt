@@ -1,14 +1,12 @@
-version := "0.0.2-SNAPSHOT"
-
 organization := "org.sazabi"
 
-crossScalaVersions := Seq("2.11.7", "2.10.5")
+crossScalaVersions := Seq("2.11.7", "2.10.6")
 
 scalaVersion := crossScalaVersions.value.head
 
 libraryDependencies += "com.twitter" %% "bijection-core" % "0.8.1"
 
-libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.1.11" % "test"
+libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.1.16" % "test"
 
 testFrameworks += new TestFramework("scalaprops.ScalapropsFramework")
 

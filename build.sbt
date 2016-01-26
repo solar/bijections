@@ -19,16 +19,16 @@ lazy val argonaut = proj("argonaut").settings (
 
 lazy val joda = proj("jodatime").settings (
   libraryDependencies ++= Seq(
-    "com.github.nscala-time" %% "nscala-time" % "2.0.0",
-    "org.scalaz" %% "scalaz-core" % "7.1.3",
+    "com.github.nscala-time" %% "nscala-time" % "2.6.0",
+    "org.scalaz" %% "scalaz-core" % "7.1.6",
     "com.chuusai" %% "shapeless" % "2.2.5"),
   libraryDependencies ++= (
     if (scalaVersion.value.startsWith("2.10"))
-      Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full))
+      Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
     else Seq()
   )
 )
 
 lazy val scalaz = proj("scalaz").settings(
-  libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.3"
+  libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.6"
 )
